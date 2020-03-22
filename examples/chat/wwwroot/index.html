@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>WebSocket Chat</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body class="body">
+    <input type="text" id="textInput" placeholder="Enter your message" />
+    <button id="sendButton">Send</button>
+
+    <ul id="messages"></ul>
+
+    <script language="javascript" type="text/javascript">
+      const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+
+      const uri = `${protocol}//${window.location.host}/ws`;
+      function connect() {
+        socket = new WebSocket(uri);
+        socket.onopen = function(event) {
+          console.log(`opened connection to ${uri}`);
+        };
+        socket.onclose = function(event) {
+          console.log(`closed connection from ${uri}`);
+        };
+        socket.onmessage = function(event) {
+          appendItem(list, event.data);
+          console.log(event.data);
+        };
+        socket.onerror = function(event) {
+          console.error("error", event.data);
+        };
+      }
+      connect();
+      const input = document.getElementById("textInput");
+      const list = document.getElementById("messages");
+      const button = document.getElementById("sendButton");
+
+      button.addEventListener("click", function() {
+        sendMessage(input.value);
+        input.value = "";
+      });
+
+      input.addEventListener("keyup", function(event) {
+        if (event.keyCode === 13) {
+          event.preventDefault();
+          button.click();
+        }
+      });
+
+      function sendMessage(message) {
+        console.log(`Sending: ${message}`);
+        socket.send(message);
+      }
+      function appendItem(list, message) {
+        const item = document.createElement("li");
+        item.appendChild(document.createTextNode(message));
+        list.appendChild(item);
+      }
+    </script>
+  </body>
+</html>
