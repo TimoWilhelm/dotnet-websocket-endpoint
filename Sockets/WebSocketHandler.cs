@@ -24,8 +24,25 @@ namespace Tiwi.Sockets
             await Task.CompletedTask;
         }
 
-        public virtual async Task OnDisconnectedAsync(WebSocket socket, CancellationToken cancellationToken) =>
-            await this.WebSocketConnectionManager.RemoveSocketAsync(this.WebSocketConnectionManager.GetId(socket), cancellationToken);
+        public virtual async Task OnDisconnectedAsync(WebSocket socket)
+        {
+            if (this.WebSocketConnectionManager.TryRemoveSocket(this.WebSocketConnectionManager.GetId(socket), out var socketConnection))
+            {
+                try
+                {
+                    if (socket.State == WebSocketState.Open || socket.State == WebSocketState.CloseReceived || socket.State == WebSocketState.CloseSent)
+                    {
+                        await (socketConnection.Socket?.CloseAsync(closeStatus: WebSocketCloseStatus.NormalClosure,
+                                            statusDescription: "Closed by the ConnectionManager",
+                                            cancellationToken: CancellationToken.None) ?? Task.CompletedTask);
+                    }
+                }
+                finally
+                {
+                    socketConnection.SocketFinishedTcs?.TrySetResult(null);
+                }
+            }
+        }
 
         public async Task SendMessageAsync(WebSocket socket, string message, CancellationToken cancellationToken)
         {
@@ -46,7 +63,7 @@ namespace Tiwi.Sockets
             }
             catch (WebSocketException ex) when (ex.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
             {
-                await this.OnDisconnectedAsync(socket, cancellationToken);
+                await this.OnDisconnectedAsync(socket);
             }
         }
 

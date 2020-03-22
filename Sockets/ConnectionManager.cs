@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.WebSockets;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Tiwi.Sockets
@@ -33,25 +33,10 @@ namespace Tiwi.Sockets
                 Socket = socket,
                 SocketFinishedTcs = socketFinishedTcs
             };
+
             this.sockets.TryAdd(socketConnection.Id, socketConnection);
         }
 
-        public async Task RemoveSocketAsync(Guid id, CancellationToken cancellationToken)
-        {
-            if (this.sockets.TryRemove(id, out var c))
-            {
-                try
-                {
-                    await (c.Socket?.CloseAsync(closeStatus: WebSocketCloseStatus.NormalClosure,
-                                            statusDescription: "Closed by the ConnectionManager",
-                                            cancellationToken: cancellationToken) ?? Task.CompletedTask);
-                }
-                catch (WebSocketException ex) when (ex.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely) { }
-                finally
-                {
-                    c.SocketFinishedTcs?.TrySetResult(null);
-                }
-            }
-        }
+        public bool TryRemoveSocket(Guid id, [MaybeNullWhen(false)] out SocketConnection socketConnection) => this.sockets.TryRemove(id, out socketConnection);
     }
 }

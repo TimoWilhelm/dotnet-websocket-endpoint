@@ -36,13 +36,19 @@ namespace Tiwi.Sockets
 
                         else if (result.MessageType == WebSocketMessageType.Close)
                         {
-                            await webSocketHandler.OnDisconnectedAsync(socket, context.RequestAborted);
+                            await webSocketHandler.OnDisconnectedAsync(socket);
                         }
                     }
                     catch (WebSocketException ex) when (ex.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
                     {
-                        Console.WriteLine("ConnectionClosedPrematurely");
-                        await webSocketHandler.OnDisconnectedAsync(socket, context.RequestAborted);
+                        Console.WriteLine("Connection Closed Prematurely");
+                        await webSocketHandler.OnDisconnectedAsync(socket);
+                        return;
+                    }
+                    catch (TaskCanceledException) when (socket.State == WebSocketState.Aborted)
+                    {
+                        Console.WriteLine("WebSocket Aborted");
+                        await webSocketHandler.OnDisconnectedAsync(socket);
                         return;
                     }
                 }

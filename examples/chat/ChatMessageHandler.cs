@@ -18,13 +18,13 @@ namespace Tiwi.Sockets.Examples.Chat
             await this.SendMessageToAllAsync($"{socketId} is now connected", cancellationToken);
         }
 
-        public override async Task OnDisconnectedAsync(WebSocket socket, CancellationToken cancellationToken)
+        public override async Task OnDisconnectedAsync(WebSocket socket)
         {
             var socketId = this.WebSocketConnectionManager.GetId(socket);
 
-            await base.OnDisconnectedAsync(socket, cancellationToken);
+            await base.OnDisconnectedAsync(socket);
 
-            await this.SendMessageToAllAsync($"{socketId} disconnected", cancellationToken);
+            await this.SendMessageToAllAsync($"{socketId} disconnected", CancellationToken.None);
         }
 
         public override async Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, Stream message, CancellationToken cancellationToken)
