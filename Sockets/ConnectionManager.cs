@@ -12,7 +12,7 @@ namespace Tiwi.Sockets
     {
         private readonly ConcurrentDictionary<Guid, SocketConnection> sockets = new ConcurrentDictionary<Guid, SocketConnection>();
 
-        public int NumberOfConnections => this.sockets.Count;
+        public int ConnectionCount => this.sockets.Count;
 
         public WebSocket? GetSocketById(Guid id) => this.sockets.FirstOrDefault(c => c.Key == id).Value.Socket;
 
