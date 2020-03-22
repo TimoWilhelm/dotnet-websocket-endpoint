@@ -16,12 +16,12 @@ namespace Tiwi.Sockets
             this.WebSocketConnectionManager = webSocketConnectionManager;
         }
 
-        public virtual async Task OnConnectedAsync(WebSocket socket,
-                                                   TaskCompletionSource<object?> socketFinishedTcs,
-                                                   CancellationToken cancellationToken)
+        public virtual Task OnConnectedAsync(WebSocket socket,
+                                             TaskCompletionSource<object?> socketFinishedTcs,
+                                             CancellationToken cancellationToken)
         {
             this.WebSocketConnectionManager.AddSocket(socket, socketFinishedTcs);
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public virtual async Task OnDisconnectedAsync(WebSocket socket)
