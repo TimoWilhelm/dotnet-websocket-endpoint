@@ -25,7 +25,7 @@ namespace Tiwi.Sockets
         }
 
         public Guid GetId(WebSocket socket) => this.sockets.FirstOrDefault(c => c.Value.Socket == socket).Key;
-        public void AddSocket(WebSocket socket, TaskCompletionSource<object?> socketFinishedTcs)
+        public Guid AddSocket(WebSocket socket, TaskCompletionSource<object?> socketFinishedTcs)
         {
             var socketConnection = new SocketConnection
             {
@@ -35,6 +35,8 @@ namespace Tiwi.Sockets
             };
 
             this.sockets.TryAdd(socketConnection.Id, socketConnection);
+
+            return socketConnection.Id;
         }
 
         public bool TryRemoveSocket(Guid id, [MaybeNullWhen(false)] out SocketConnection socketConnection) => this.sockets.TryRemove(id, out socketConnection);

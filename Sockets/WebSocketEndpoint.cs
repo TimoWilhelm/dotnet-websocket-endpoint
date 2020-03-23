@@ -17,7 +17,7 @@ namespace Tiwi.Sockets
             var socket = await context.WebSockets.AcceptWebSocketAsync();
             var socketFinishedTcs = new TaskCompletionSource<object?>();
 
-            await webSocketHandler.OnConnectedAsync(socket, socketFinishedTcs, context.RequestAborted);
+            var socketId = await webSocketHandler.AddConnectionAsync(socket, socketFinishedTcs, context.RequestAborted);
 
             WebSocketReceiveResult? result = null;
             _ = Task.Run(async () =>
@@ -31,24 +31,22 @@ namespace Tiwi.Sockets
 
                         if (result.MessageType == WebSocketMessageType.Text)
                         {
-                            await webSocketHandler.ReceiveAsync(socket, result, ms, context.RequestAborted);
+                            await webSocketHandler.ReceiveAsync(socketId, result, ms, context.RequestAborted);
                         }
 
                         else if (result.MessageType == WebSocketMessageType.Close)
                         {
-                            await webSocketHandler.OnDisconnectedAsync(socket);
+                            await webSocketHandler.CloseConnectionAsync(socket, "Connection Closed");
                         }
                     }
                     catch (WebSocketException ex) when (ex.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
                     {
-                        Console.WriteLine("Connection Closed Prematurely");
-                        await webSocketHandler.OnDisconnectedAsync(socket);
+                        await webSocketHandler.CloseConnectionAsync(socket, "Connection Closed Prematurely");
                         return;
                     }
                     catch (TaskCanceledException) when (socket.State == WebSocketState.Aborted)
                     {
-                        Console.WriteLine("WebSocket Aborted");
-                        await webSocketHandler.OnDisconnectedAsync(socket);
+                        await webSocketHandler.CloseConnectionAsync(socket, "WebSocket Aborted");
                         return;
                     }
                 }
