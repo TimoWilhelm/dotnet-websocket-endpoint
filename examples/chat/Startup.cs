@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,7 +26,14 @@ namespace Tiwi.Sockets.Examples.Chat
 
             app.UseRouting();
 
-            app.UseWebSockets();
+            var webSocketOptions = new WebSocketOptions()
+            {
+                KeepAliveInterval = TimeSpan.FromMinutes(2),
+                ReceiveBufferSize = 8192,
+            };
+            // webSocketOptions.AllowedOrigins.Add();
+
+            app.UseWebSockets(webSocketOptions);
 
             app.UseEndpoints(endpoints => endpoints.MapWebSocketManager<ChatMessageHandler>("/ws"));
 

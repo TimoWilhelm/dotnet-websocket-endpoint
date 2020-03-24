@@ -12,7 +12,7 @@ namespace Tiwi.Sockets
         public async Task HandleRequestAsync(HttpContext context, WebSocketHandler webSocketHandler)
         {
             if (!context.WebSockets.IsWebSocketRequest)
-                return;
+                context.Response.StatusCode = 400;
 
             var socket = await context.WebSockets.AcceptWebSocketAsync();
             var socketFinishedTcs = new TaskCompletionSource<object?>();
@@ -29,7 +29,7 @@ namespace Tiwi.Sockets
                         using var ms = new MemoryStream();
                         result = await this.ReadMessageAsync(socket, ms, context.RequestAborted);
 
-                        if (result.MessageType == WebSocketMessageType.Text)
+                        if (result.MessageType == WebSocketMessageType.Binary || result.MessageType == WebSocketMessageType.Text)
                         {
                             await webSocketHandler.ReceiveAsync(socketId, result, ms, context.RequestAborted);
                         }
@@ -55,18 +55,18 @@ namespace Tiwi.Sockets
             await socketFinishedTcs.Task;
         }
 
-        private async Task<WebSocketReceiveResult> ReadMessageAsync(WebSocket socket, Stream stream, CancellationToken cancellationToken)
+        private async Task<WebSocketReceiveResult> ReadMessageAsync(WebSocket webSocket, Stream messageStream, CancellationToken cancellationToken)
         {
             var buffer = new ArraySegment<byte>(new byte[8192]);
             WebSocketReceiveResult? result;
             do
             {
-                result = await socket.ReceiveAsync(buffer, cancellationToken);
-                await stream.WriteAsync(buffer.Array ?? Array.Empty<byte>(), buffer.Offset, result.Count, cancellationToken);
+                result = await webSocket.ReceiveAsync(buffer, cancellationToken);
+                await messageStream.WriteAsync(buffer.Array ?? Array.Empty<byte>(), buffer.Offset, result.Count, cancellationToken);
             }
             while (!result.EndOfMessage);
 
-            stream.Seek(0, SeekOrigin.Begin);
+            messageStream.Seek(0, SeekOrigin.Begin);
             return result;
         }
     }

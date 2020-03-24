@@ -10,7 +10,7 @@ namespace Tiwi.Sockets.Examples.Chat
 {
     public class ChatMessageHandler : WebSocketHandler
     {
-        public ChatMessageHandler(ConnectionManager webSocketConnectionManager) : base(webSocketConnectionManager) { }
+        public ChatMessageHandler(WebSocketConnectionManager webSocketConnectionManager) : base(webSocketConnectionManager) { }
         public override async Task OnConnectedAsync(Guid socketId, CancellationToken cancellationToken) =>
             await this.SendMessageToAllAsync($"{socketId} is now connected", cancellationToken);
 

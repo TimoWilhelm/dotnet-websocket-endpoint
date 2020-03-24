@@ -8,7 +8,7 @@ namespace Tiwi.Sockets
     {
         public static IServiceCollection AddWebSocketManager(this IServiceCollection services)
         {
-            services.AddSingleton<ConnectionManager>();
+            services.AddSingleton<WebSocketConnectionManager>();
             services.AddScoped<WebSocketEndpoint>();
 
             return services;
