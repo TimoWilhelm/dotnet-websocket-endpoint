@@ -14,19 +14,19 @@ namespace Tiwi.Sockets
 
         public int ConnectionCount => this.socketConnections.Count;
 
-        public bool TryGetSocketById(Guid id, [MaybeNullWhen(false)] out WebSocketConnection socketConnection) =>
+        internal bool TryGetSocketById(Guid id, [MaybeNullWhen(false)] out WebSocketConnection socketConnection) =>
             this.socketConnections.TryGetValue(id, out socketConnection);
 
 
-        public IEnumerable<WebSocket> GetAll()
+        internal IEnumerable<WebSocket> GetAll()
         {
             return this.socketConnections.Values
                 .Select(c => c.WebSocket);
         }
 
-        public Guid GetId(WebSocket webSocket) => this.socketConnections.First(c => c.Value.WebSocket == webSocket).Key;
+        internal Guid GetId(WebSocket webSocket) => this.socketConnections.First(c => c.Value.WebSocket == webSocket).Key;
 
-        public WebSocketConnection AddSocket(WebSocket webSocket, TaskCompletionSource<object?> socketFinishedTcs)
+        internal WebSocketConnection AddSocket(WebSocket webSocket, TaskCompletionSource<object?> socketFinishedTcs)
         {
             var socketConnection = new WebSocketConnection(webSocket, socketFinishedTcs);
             this.socketConnections.TryAdd(socketConnection.Id, socketConnection);
@@ -34,7 +34,7 @@ namespace Tiwi.Sockets
             return socketConnection;
         }
 
-        public bool TryRemoveSocket(Guid id, [MaybeNullWhen(false)] out WebSocketConnection socketConnection) =>
+        internal bool TryRemoveSocket(Guid id, [MaybeNullWhen(false)] out WebSocketConnection socketConnection) =>
             this.socketConnections.TryRemove(id, out socketConnection);
     }
 }

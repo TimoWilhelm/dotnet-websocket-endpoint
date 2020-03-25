@@ -9,15 +9,24 @@ namespace Tiwi.Sockets
 {
     public class WebSocketEndpoint
     {
-        public async Task HandleRequestAsync(HttpContext context, WebSocketHandler webSocketHandler)
+        public async Task HandleRequestAsync(HttpContext context, WebSocketSubProtocolProvider protocolProvider)
         {
             if (!context.WebSockets.IsWebSocketRequest)
+            {
                 context.Response.StatusCode = 400;
+                return;
+            }
 
-            var socket = await context.WebSockets.AcceptWebSocketAsync();
+            if (!protocolProvider.TryNegotiateSubProtocol(context.WebSockets.WebSocketRequestedProtocols, out var protocolHandler))
+            {
+                // TODO Beter error message
+                context.Response.StatusCode = 400;
+                return;
+            }
+
+            var socket = await context.WebSockets.AcceptWebSocketAsync(protocolHandler.SubProtocolIdentifier);
             var socketFinishedTcs = new TaskCompletionSource<object?>();
-
-            var socketId = await webSocketHandler.AddConnectionAsync(socket, socketFinishedTcs, context.RequestAborted);
+            var socketId = await protocolHandler.AddConnectionAsync(socket, socketFinishedTcs, context.RequestAborted);
 
             WebSocketReceiveResult? result = null;
             _ = Task.Run(async () =>
@@ -27,26 +36,26 @@ namespace Tiwi.Sockets
                     try
                     {
                         using var ms = new MemoryStream();
-                        result = await this.ReadMessageAsync(socket, ms, context.RequestAborted);
+                        result = await this.ReadFullMessageAsync(socket, ms, context.RequestAborted);
 
                         if (result.MessageType == WebSocketMessageType.Binary || result.MessageType == WebSocketMessageType.Text)
                         {
-                            await webSocketHandler.ReceiveAsync(socketId, result, ms, context.RequestAborted);
+                            await protocolHandler.ReceiveAsync(socketId, result, ms, context.RequestAborted);
                         }
 
                         else if (result.MessageType == WebSocketMessageType.Close)
                         {
-                            await webSocketHandler.CloseConnectionAsync(socket, "Connection Closed");
+                            await protocolHandler.CloseConnectionAsync(socket, result.CloseStatus ?? WebSocketCloseStatus.Empty, result.CloseStatusDescription);
                         }
                     }
                     catch (WebSocketException ex) when (ex.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
                     {
-                        await webSocketHandler.CloseConnectionAsync(socket, "Connection Closed Prematurely");
+                        await protocolHandler.CloseConnectionAsync(socket, WebSocketCloseStatus.Empty, "Connection Closed Prematurely");
                         return;
                     }
                     catch (TaskCanceledException) when (socket.State == WebSocketState.Aborted)
                     {
-                        await webSocketHandler.CloseConnectionAsync(socket, "WebSocket Aborted");
+                        await protocolHandler.CloseConnectionAsync(socket, WebSocketCloseStatus.Empty, "WebSocket Aborted");
                         return;
                     }
                 }
@@ -55,7 +64,7 @@ namespace Tiwi.Sockets
             await socketFinishedTcs.Task;
         }
 
-        private async Task<WebSocketReceiveResult> ReadMessageAsync(WebSocket webSocket, Stream messageStream, CancellationToken cancellationToken)
+        private async Task<WebSocketReceiveResult> ReadFullMessageAsync(WebSocket webSocket, Stream messageStream, CancellationToken cancellationToken)
         {
             var buffer = new ArraySegment<byte>(new byte[8192]);
             WebSocketReceiveResult? result;

@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,19 +10,22 @@ namespace Tiwi.Sockets
         public static IServiceCollection AddWebSocketManager(this IServiceCollection services)
         {
             services.AddSingleton<WebSocketConnectionManager>();
-            services.AddScoped<WebSocketEndpoint>();
+            services.AddTransient<WebSocketEndpoint>();
 
             return services;
         }
 
-        public static IEndpointConventionBuilder MapWebSocketManager<T>(this IEndpointRouteBuilder endpoints, string pattern) where T : WebSocketHandler
+        public static IEndpointConventionBuilder MapWebSocketManager(this IEndpointRouteBuilder endpoints, string pattern, Action<WebSocketSubProtocolBuilder> configureSubProtocols)
         {
+            var subProtocolBuilder = new WebSocketSubProtocolBuilder(endpoints.ServiceProvider);
+            configureSubProtocols?.Invoke(subProtocolBuilder);
+            var subProtocolProvider = subProtocolBuilder.Build();
+
             return endpoints.Map(pattern, async context =>
             {
-                var webSocketEndpoint = context.RequestServices.GetRequiredService<WebSocketEndpoint>();
-                var handler = context.RequestServices.GetRequiredService<T>();
+                var endpoint = context.RequestServices.GetRequiredService<WebSocketEndpoint>();
 
-                await webSocketEndpoint.HandleRequestAsync(context, handler);
+                await endpoint.HandleRequestAsync(context, subProtocolProvider);
             });
         }
     }

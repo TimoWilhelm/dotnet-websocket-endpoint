@@ -12,8 +12,8 @@ namespace Tiwi.Sockets.Examples.Chat
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddScoped<ChatMessageHandler>();
             services.AddWebSocketManager();
+            services.AddTransient<ChatMessageProtocolHandler>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -35,7 +35,7 @@ namespace Tiwi.Sockets.Examples.Chat
 
             app.UseWebSockets(webSocketOptions);
 
-            app.UseEndpoints(endpoints => endpoints.MapWebSocketManager<ChatMessageHandler>("/ws"));
+            app.UseEndpoints(endpoints => endpoints.MapWebSocketManager("/ws", o => o.AddSubProtocol<ChatMessageProtocolHandler>()));
 
             app.UseDefaultFiles();
             app.UseStaticFiles();

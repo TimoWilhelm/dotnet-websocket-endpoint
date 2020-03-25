@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Tiwi.Sockets
 {
-    public class WebSocketConnection
+    internal class WebSocketConnection
     {
         public WebSocketConnection(WebSocket webSocket, TaskCompletionSource<object?> socketFinishedTcs)
         {
@@ -13,8 +13,8 @@ namespace Tiwi.Sockets
             this.SocketFinishedTcs = socketFinishedTcs;
         }
 
-        public Guid Id { get; set; }
-        public WebSocket WebSocket { get; set; }
-        public TaskCompletionSource<object?> SocketFinishedTcs { get; set; }
+        public Guid Id { get; }
+        public WebSocket WebSocket { get; }
+        public TaskCompletionSource<object?> SocketFinishedTcs { get; }
     }
 }

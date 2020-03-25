@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Net.WebSockets;
 using System.Text;
@@ -7,18 +7,20 @@ using System.Threading.Tasks;
 
 namespace Tiwi.Sockets
 {
-    public abstract class WebSocketHandler
+    public abstract class WebSocketProtocolHandler
     {
-        protected WebSocketConnectionManager WebSocketConnectionManager { get; set; }
+        private readonly WebSocketConnectionManager connectionManager;
 
-        public WebSocketHandler(WebSocketConnectionManager webSocketConnectionManager)
+        public WebSocketProtocolHandler(WebSocketConnectionManager connectionManager)
         {
-            this.WebSocketConnectionManager = webSocketConnectionManager;
+            this.connectionManager = connectionManager;
         }
+
+        public abstract string SubProtocolIdentifier { get; }
 
         public abstract Task OnConnectedAsync(Guid socketId, CancellationToken cancellationToken);
 
-        public abstract Task OnDisconnectedAsync(Guid socketId);
+        public abstract Task OnDisconnectedAsync(Guid socketId, WebSocketCloseStatus closeStatus, string closeStatusDescription);
 
         public abstract Task ReceiveAsync(Guid socketId, WebSocketReceiveResult result, Stream message, CancellationToken cancellationToken);
 
@@ -26,15 +28,21 @@ namespace Tiwi.Sockets
                                                      TaskCompletionSource<object?> socketFinishedTcs,
                                                      CancellationToken cancellationToken)
         {
-            var socketConnection = this.WebSocketConnectionManager.AddSocket(webSocket, socketFinishedTcs);
+            var socketConnection = this.connectionManager.AddSocket(webSocket, socketFinishedTcs);
             await this.OnConnectedAsync(socketConnection.Id, cancellationToken);
 
             return socketConnection.Id;
         }
 
-        public async Task CloseConnectionAsync(Guid socketId, string statusDescription, WebSocketCloseStatus closeStatus = WebSocketCloseStatus.NormalClosure)
+        internal async Task CloseConnectionAsync(WebSocket webSocket, WebSocketCloseStatus closeStatus, string closeStatusDescription)
         {
-            if (this.WebSocketConnectionManager.TryRemoveSocket(socketId, out var socketConnection))
+            var socketId = this.connectionManager.GetId(webSocket);
+            await this.CloseConnectionAsync(socketId, closeStatus, closeStatusDescription);
+        }
+
+        public async Task CloseConnectionAsync(Guid socketId, WebSocketCloseStatus closeStatus, string closeStatusDescription)
+        {
+            if (this.connectionManager.TryRemoveSocket(socketId, out var socketConnection))
             {
                 try
                 {
@@ -43,7 +51,7 @@ namespace Tiwi.Sockets
                         try
                         {
                             await socketConnection.WebSocket.CloseAsync(closeStatus: closeStatus,
-                                                                        statusDescription: statusDescription,
+                                                                        statusDescription: closeStatusDescription,
                                                                         cancellationToken: CancellationToken.None);
                         }
                         catch (WebSocketException)
@@ -55,20 +63,14 @@ namespace Tiwi.Sockets
                 finally
                 {
                     socketConnection.SocketFinishedTcs.TrySetResult(null);
-                    await this.OnDisconnectedAsync(socketId);
+                    await this.OnDisconnectedAsync(socketId, closeStatus, closeStatusDescription);
                 }
             }
         }
 
-        internal async Task CloseConnectionAsync(WebSocket webSocket, string statusDescription, WebSocketCloseStatus closeStatus = WebSocketCloseStatus.NormalClosure)
-        {
-            var socketId = this.WebSocketConnectionManager.GetId(webSocket);
-            await this.CloseConnectionAsync(socketId, statusDescription, closeStatus);
-        }
-
         public async Task SendMessageAsync(Guid socketId, string message, CancellationToken cancellationToken)
         {
-            if (this.WebSocketConnectionManager.TryGetSocketById(socketId, out var socketConnection))
+            if (this.connectionManager.TryGetSocketById(socketId, out var socketConnection))
             {
                 byte[] messageBytes = Encoding.UTF8.GetBytes(message);
                 await this.SendMessageAsync(socketConnection.WebSocket, messageBytes, WebSocketMessageType.Text, cancellationToken);
@@ -77,7 +79,7 @@ namespace Tiwi.Sockets
 
         public async Task SendMessageAsync(Guid socketId, byte[] message, CancellationToken cancellationToken)
         {
-            if (this.WebSocketConnectionManager.TryGetSocketById(socketId, out var socketConnection))
+            if (this.connectionManager.TryGetSocketById(socketId, out var socketConnection))
             {
                 await this.SendMessageAsync(socketConnection.WebSocket, message, WebSocketMessageType.Binary, cancellationToken);
             }
@@ -86,7 +88,7 @@ namespace Tiwi.Sockets
         public async Task SendMessageToAllAsync(string message, CancellationToken cancellationToken)
         {
             byte[] messageBytes = Encoding.UTF8.GetBytes(message);
-            foreach (var socket in this.WebSocketConnectionManager.GetAll())
+            foreach (var socket in this.connectionManager.GetAll())
             {
                 if (socket.State == WebSocketState.Open)
                 {
@@ -97,7 +99,7 @@ namespace Tiwi.Sockets
 
         public async Task SendMessageToAllAsync(byte[] message, CancellationToken cancellationToken)
         {
-            foreach (var socket in this.WebSocketConnectionManager.GetAll())
+            foreach (var socket in this.connectionManager.GetAll())
             {
                 if (socket.State == WebSocketState.Open)
                 {
@@ -130,7 +132,7 @@ namespace Tiwi.Sockets
             }
             catch (WebSocketException ex) when (ex.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
             {
-                await this.CloseConnectionAsync(webSocket, "Connection Closed Prematurely");
+                await this.CloseConnectionAsync(webSocket, WebSocketCloseStatus.Empty, "Connection Closed Prematurely");
             }
         }
     }

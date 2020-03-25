@@ -8,13 +8,15 @@ using System.Threading.Tasks;
 
 namespace Tiwi.Sockets.Examples.Chat
 {
-    public class ChatMessageHandler : WebSocketHandler
+    public class ChatMessageProtocolHandler : WebSocketProtocolHandler
     {
-        public ChatMessageHandler(WebSocketConnectionManager webSocketConnectionManager) : base(webSocketConnectionManager) { }
+        public override string SubProtocolIdentifier => "tiwi.example.chat";
+        public ChatMessageProtocolHandler(WebSocketConnectionManager webSocketConnectionManager) : base(webSocketConnectionManager) { }
+
         public override async Task OnConnectedAsync(Guid socketId, CancellationToken cancellationToken) =>
             await this.SendMessageToAllAsync($"{socketId} is now connected", cancellationToken);
 
-        public override async Task OnDisconnectedAsync(Guid socketId) =>
+        public override async Task OnDisconnectedAsync(Guid socketId, WebSocketCloseStatus closeStatus, string closeStatusDescription) =>
             await this.SendMessageToAllAsync($"{socketId} disconnected", CancellationToken.None);
 
         public override async Task ReceiveAsync(Guid socketId, WebSocketReceiveResult result, Stream message, CancellationToken cancellationToken)

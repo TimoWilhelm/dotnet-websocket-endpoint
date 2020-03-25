@@ -17,7 +17,7 @@
 
       const uri = `${protocol}//${window.location.host}/ws`;
       function connect() {
-        socket = new WebSocket(uri);
+        socket = new WebSocket(uri, ["tiwi.example.chat"]);
         socket.onopen = function(event) {
           console.log(`opened connection to ${uri}`);
         };
