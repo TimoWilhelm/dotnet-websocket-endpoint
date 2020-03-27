@@ -25,7 +25,7 @@ namespace Tiwi.Sockets
             }
 
             var socket = await context.WebSockets.AcceptWebSocketAsync(protocolHandler.SubProtocolIdentifier);
-            var socketFinishedTcs = new TaskCompletionSource<object?>();
+            var socketFinishedTcs = new TaskCompletionSource<bool>();
             var socketId = await protocolHandler.AddConnectionAsync(socket, socketFinishedTcs, context.RequestAborted);
 
             WebSocketReceiveResult? result = null;

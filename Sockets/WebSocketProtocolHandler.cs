@@ -25,7 +25,7 @@ namespace Tiwi.Sockets
         public abstract Task ReceiveAsync(Guid socketId, WebSocketReceiveResult result, Stream message, CancellationToken cancellationToken);
 
         internal async Task<Guid> AddConnectionAsync(WebSocket webSocket,
-                                                     TaskCompletionSource<object?> socketFinishedTcs,
+                                                     TaskCompletionSource<bool> socketFinishedTcs,
                                                      CancellationToken cancellationToken)
         {
             var socketConnection = this.connectionManager.AddSocket(webSocket, socketFinishedTcs);
@@ -44,6 +44,7 @@ namespace Tiwi.Sockets
         {
             if (this.connectionManager.TryRemoveSocket(socketId, out var socketConnection))
             {
+                bool connectionAborted = false;
                 try
                 {
                     if (socketConnection.WebSocket.State != WebSocketState.Closed)
@@ -57,12 +58,13 @@ namespace Tiwi.Sockets
                         catch (WebSocketException)
                         {
                             socketConnection.WebSocket.Abort();
+                            connectionAborted = true;
                         }
                     }
                 }
                 finally
                 {
-                    socketConnection.SocketFinishedTcs.TrySetResult(null);
+                    socketConnection.SocketFinishedTcs.TrySetResult(!connectionAborted);
                     await this.OnDisconnectedAsync(socketId, closeStatus, closeStatusDescription);
                 }
             }

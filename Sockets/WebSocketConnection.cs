@@ -6,7 +6,7 @@ namespace Tiwi.Sockets
 {
     internal class WebSocketConnection
     {
-        public WebSocketConnection(WebSocket webSocket, TaskCompletionSource<object?> socketFinishedTcs)
+        public WebSocketConnection(WebSocket webSocket, TaskCompletionSource<bool> socketFinishedTcs)
         {
             this.Id = Guid.NewGuid();
             this.WebSocket = webSocket;
@@ -15,6 +15,6 @@ namespace Tiwi.Sockets
 
         public Guid Id { get; }
         public WebSocket WebSocket { get; }
-        public TaskCompletionSource<object?> SocketFinishedTcs { get; }
+        public TaskCompletionSource<bool> SocketFinishedTcs { get; }
     }
 }

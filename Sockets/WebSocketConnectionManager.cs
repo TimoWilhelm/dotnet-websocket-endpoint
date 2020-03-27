@@ -26,7 +26,7 @@ namespace Tiwi.Sockets
 
         internal Guid GetId(WebSocket webSocket) => this.socketConnections.First(c => c.Value.WebSocket == webSocket).Key;
 
-        internal WebSocketConnection AddSocket(WebSocket webSocket, TaskCompletionSource<object?> socketFinishedTcs)
+        internal WebSocketConnection AddSocket(WebSocket webSocket, TaskCompletionSource<bool> socketFinishedTcs)
         {
             var socketConnection = new WebSocketConnection(webSocket, socketFinishedTcs);
             this.socketConnections.TryAdd(socketConnection.Id, socketConnection);
