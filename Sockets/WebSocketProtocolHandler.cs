@@ -90,22 +90,22 @@ namespace Tiwi.Sockets
         public async Task SendMessageToAllAsync(string message, CancellationToken cancellationToken)
         {
             byte[] messageBytes = Encoding.UTF8.GetBytes(message);
-            foreach (var socket in this.connectionManager.GetAll())
+            foreach (var connection in this.connectionManager)
             {
-                if (socket.State == WebSocketState.Open)
+                if (connection.WebSocket.State == WebSocketState.Open)
                 {
-                    await this.SendMessageAsync(socket, messageBytes, WebSocketMessageType.Text, cancellationToken);
+                    await this.SendMessageAsync(connection.WebSocket, messageBytes, WebSocketMessageType.Text, cancellationToken);
                 }
             }
         }
 
         public async Task SendMessageToAllAsync(byte[] message, CancellationToken cancellationToken)
         {
-            foreach (var socket in this.connectionManager.GetAll())
+            foreach (var connection in this.connectionManager)
             {
-                if (socket.State == WebSocketState.Open)
+                if (connection.WebSocket.State == WebSocketState.Open)
                 {
-                    await this.SendMessageAsync(socket, message, WebSocketMessageType.Binary, cancellationToken);
+                    await this.SendMessageAsync(connection.WebSocket, message, WebSocketMessageType.Binary, cancellationToken);
                 }
             }
         }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Tiwi.Sockets
 {
-    public class WebSocketConnectionManager
+    public class WebSocketConnectionManager : IEnumerable<WebSocketConnection>
     {
         private readonly ConcurrentDictionary<Guid, WebSocketConnection> socketConnections = new ConcurrentDictionary<Guid, WebSocketConnection>();
 
@@ -16,13 +17,6 @@ namespace Tiwi.Sockets
 
         internal bool TryGetSocketById(Guid id, [MaybeNullWhen(false)] out WebSocketConnection socketConnection) =>
             this.socketConnections.TryGetValue(id, out socketConnection);
-
-
-        internal IEnumerable<WebSocket> GetAll()
-        {
-            return this.socketConnections.Values
-                .Select(c => c.WebSocket);
-        }
 
         internal Guid GetId(WebSocket webSocket) => this.socketConnections.First(c => c.Value.WebSocket == webSocket).Key;
 
@@ -36,5 +30,9 @@ namespace Tiwi.Sockets
 
         internal bool TryRemoveSocket(Guid id, [MaybeNullWhen(false)] out WebSocketConnection socketConnection) =>
             this.socketConnections.TryRemove(id, out socketConnection);
+
+        public IEnumerator<WebSocketConnection> GetEnumerator() => this.socketConnections.Values.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => this.socketConnections.Values.GetEnumerator();
     }
 }
